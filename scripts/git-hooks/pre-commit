@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# claude-mac-kit pre-commit: refuse to commit any staged secret. Fails CLOSED when gitleaks is missing.
+# Installed via scripts/install-git-hooks.sh (git config core.hooksPath scripts/git-hooks).
+set -u
+root=$(git rev-parse --show-toplevel)
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is not on PATH — refusing to commit. Install it: brew install gitleaks" >&2
+  exit 1
+fi
+if gitleaks git --pre-commit --staged --no-banner --redact --exit-code 1 --config "$root/.gitleaks.toml" "$root"; then
+  exit 0
+fi
+echo "pre-commit: gitleaks found a secret in the staged changes — commit refused." >&2
+echo "            Move the value to ~/.claude/credentials/<name>.json and reference it by path." >&2
+exit 1

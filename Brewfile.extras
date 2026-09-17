@@ -1,0 +1,3 @@
+# claude-mac-kit — optional extras, installed only with KIT_EXTRAS=1 (or --extras): claude-watch dependencies.
+brew "whisper.cpp"  # the formula token is whisper.cpp (whisper-cpp does not exist)
+brew "ffmpeg"

@@ -1,0 +1,15 @@
+{
+  "name": "claude-mac-kit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One-line setup of Claude Code, Claude Desktop, and a second brain on a fresh Mac.",
+  "license": "MIT",
+  "engines": { "node": ">=22.13" },
+  "bin": { "claude-kit": "cli/claude-kit.js" },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "build:manifest": "node scripts/build-manifest.js",
+    "check:manifest": "node scripts/build-manifest.js --check",
+    "publish:public": "bash scripts/publish.sh"
+  }
+}

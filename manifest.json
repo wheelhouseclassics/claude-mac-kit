@@ -1,0 +1,571 @@
+{
+  "$schema": "./manifest.schema.json",
+  "version": 1,
+  "generatedAt": "2026-09-15T00:29:32.096Z",
+  "generator": "scripts/build-manifest.js",
+  "marketplaces": [
+    {
+      "name": "agricidaniel-claude-seo",
+      "source": {
+        "source": "github",
+        "repo": "AgriciDaniel/claude-seo"
+      }
+    },
+    {
+      "name": "claude-plugins-official",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    {
+      "name": "claude-video",
+      "source": {
+        "source": "github",
+        "repo": "bradautomates/claude-video"
+      }
+    },
+    {
+      "name": "everything-claude-code",
+      "source": {
+        "source": "github",
+        "repo": "affaan-m/everything-claude-code"
+      }
+    },
+    {
+      "name": "thedotmack",
+      "source": {
+        "source": "github",
+        "repo": "thedotmack/claude-mem"
+      }
+    }
+  ],
+  "plugins": [
+    {
+      "id": "chrome-devtools-mcp@claude-plugins-official",
+      "name": "chrome-devtools-mcp",
+      "marketplace": "claude-plugins-official"
+    },
+    {
+      "id": "claude-mem@thedotmack",
+      "name": "claude-mem",
+      "marketplace": "thedotmack",
+      "runtime": "bun",
+      "note": "Setup hook runs `bun install --production` at first session, not at install time."
+    },
+    {
+      "id": "claude-seo@agricidaniel-claude-seo",
+      "name": "claude-seo",
+      "marketplace": "agricidaniel-claude-seo"
+    },
+    {
+      "id": "everything-claude-code@everything-claude-code",
+      "name": "everything-claude-code",
+      "marketplace": "everything-claude-code"
+    },
+    {
+      "id": "frontend-design@claude-plugins-official",
+      "name": "frontend-design",
+      "marketplace": "claude-plugins-official"
+    },
+    {
+      "id": "github@claude-plugins-official",
+      "name": "github",
+      "marketplace": "claude-plugins-official"
+    },
+    {
+      "id": "playground@claude-plugins-official",
+      "name": "playground",
+      "marketplace": "claude-plugins-official"
+    },
+    {
+      "id": "playwright@claude-plugins-official",
+      "name": "playwright",
+      "marketplace": "claude-plugins-official"
+    },
+    {
+      "id": "posthog@claude-plugins-official",
+      "name": "posthog",
+      "marketplace": "claude-plugins-official"
+    },
+    {
+      "id": "skill-creator@claude-plugins-official",
+      "name": "skill-creator",
+      "marketplace": "claude-plugins-official"
+    },
+    {
+      "id": "supabase@claude-plugins-official",
+      "name": "supabase",
+      "marketplace": "claude-plugins-official"
+    },
+    {
+      "id": "superpowers@claude-plugins-official",
+      "name": "superpowers",
+      "marketplace": "claude-plugins-official"
+    },
+    {
+      "id": "telegram@claude-plugins-official",
+      "name": "telegram",
+      "marketplace": "claude-plugins-official",
+      "runtime": "bun",
+      "note": "Server reads only ~/.claude/channels/telegram/.env (token duplicated there by claude-kit setup, mode 600)."
+    },
+    {
+      "id": "watch@claude-video",
+      "name": "watch",
+      "marketplace": "claude-video"
+    }
+  ],
+  "skills": [
+    {
+      "name": "thought-note",
+      "path": "kit/skills/thought-note",
+      "source": "~/.claude/skills/thought-note",
+      "mode": "mirror",
+      "sourceSha256": "95ec49676b466378caffe4cf9c90d2b203207182304bcf8174819b864e386194"
+    },
+    {
+      "name": "decision-note",
+      "path": "kit/skills/decision-note",
+      "source": "~/.claude/skills/decision-note",
+      "mode": "mirror",
+      "sourceSha256": "f5148275af5815aff3817c07e9075c37b656aeaeaf37f44561a937e826db657d"
+    },
+    {
+      "name": "handoff",
+      "path": "kit/skills/handoff",
+      "source": "~/.claude/skills/handoff",
+      "mode": "mirror",
+      "sourceSha256": "92a609b3d55801ee526a1b11a7b69ba5ff04fae15e50f8d94945c8a5a6d1f66c"
+    },
+    {
+      "name": "graphify",
+      "path": "kit/skills/graphify",
+      "source": "~/.claude/skills/graphify",
+      "mode": "port",
+      "sourceSha256": "49a4562226ab1525b217c04d834670571cb2d919ab534e3bc92426cf2ec189dc",
+      "note": "37 powershell fences → bash; pip via the kit venv"
+    },
+    {
+      "name": "obsidian-markdown",
+      "path": "kit/skills/obsidian-markdown",
+      "source": "~/.claude/skills/obsidian-markdown",
+      "mode": "mirror",
+      "sourceSha256": "1b0371f9741a115db09166257816eb4bae675a958c6685041c8757c605c1f1bf"
+    },
+    {
+      "name": "defuddle",
+      "path": "kit/skills/defuddle",
+      "source": "~/.claude/skills/defuddle",
+      "mode": "mirror",
+      "sourceSha256": "56411ad2e3f34e2ac8e438de823f8c5a7eb05e6d83fb840c3ba79c8947104820"
+    },
+    {
+      "name": "mcp-doctor",
+      "path": "kit/skills/mcp-doctor",
+      "source": "~/.claude/skills/mcp-doctor",
+      "mode": "port",
+      "sourceSha256": "615714c70af9cd740909d130f1ca1acb6fe9ff14c8ea20fb46ef4280067e07e2",
+      "note": "macOS Desktop/Code config paths; desktop-chart MCP references removed"
+    },
+    {
+      "name": "vet-install",
+      "path": "kit/skills/vet-install",
+      "source": "~/.claude/skills/vet-install",
+      "mode": "port",
+      "sourceSha256": "2ac1173c888ec0e068fc906b32f8f2626bd30c76a72fef636638161325f040e0",
+      "note": "POSIX cd; installs under ~/projects"
+    },
+    {
+      "name": "ui-ux-pro-max",
+      "path": "kit/skills/ui-ux-pro-max",
+      "source": "~/.claude/skills/ui-ux-pro-max",
+      "mode": "port",
+      "sourceSha256": "d4b669810953c1ac872266ee5bcc0fa5371f0f084ec75f818b66189b3a8606dc",
+      "note": "one powershell fence → bash; __pycache__ excluded"
+    },
+    {
+      "name": "claude-watch",
+      "path": "kit/skills/claude-watch",
+      "source": "~/.claude/skills/claude-watch",
+      "mode": "port",
+      "sourceSha256": "9227ec7068a38b7cab265f27b9db2a8fe530cf9ededfa24a8ff2e05bbb95be2d",
+      "note": "brew whisper-cli on PATH instead of a Windows binary"
+    }
+  ],
+  "commands": [
+    {
+      "name": "project",
+      "path": "kit/commands/project.md",
+      "source": "~/.claude/commands/project.md",
+      "mode": "mirror",
+      "sourceSha256": "63bec7dbc0acda944e0f0736f920bdf6c8214894b2a82dfd33e901bed5c8c3e9"
+    }
+  ],
+  "hooks": [
+    {
+      "name": "auto-md",
+      "event": "UserPromptSubmit",
+      "path": "kit/hooks/auto-md.py",
+      "install": "~/.claude/hooks/auto-md.py",
+      "command": "~/.claude-kit/venv/bin/python ~/.claude/hooks/auto-md.py",
+      "timeout": 60,
+      "statusMessage": "Converting attached file to Markdown...",
+      "source": "~/.claude/hooks/auto-md.py",
+      "mode": "port",
+      "sourceSha256": "4f8a64460eac4e85fe54089b7f5d06dc064566ba552c38b7342fb1a67636af01",
+      "note": "Ported: AUTO_MD_OUT_DIR override (default ~/md-converted), POSIX path regex, kit venv interpreter (markitdown[all])."
+    }
+  ],
+  "mcp": [
+    {
+      "name": "composio",
+      "type": "http",
+      "url": "https://connect.composio.dev/mcp",
+      "scope": "user",
+      "note": "added with `claude mcp add --scope user --transport http`; login via `claude mcp login`"
+    }
+  ],
+  "connectors": [
+    {
+      "name": "Airtable",
+      "required": true,
+      "reason": "commands/project.md writes through the Airtable connector tools",
+      "surfaces": [
+        "code",
+        "desktop"
+      ]
+    },
+    {
+      "name": "MarketCheck",
+      "required": true,
+      "reason": "VIN decode and market data in Code and Desktop",
+      "surfaces": [
+        "code",
+        "desktop"
+      ]
+    },
+    {
+      "name": "Gmail",
+      "required": true,
+      "reason": "email triage and drafting",
+      "surfaces": [
+        "code",
+        "desktop"
+      ]
+    },
+    {
+      "name": "Google Calendar",
+      "required": true,
+      "reason": "schedule lookups",
+      "surfaces": [
+        "code",
+        "desktop"
+      ]
+    },
+    {
+      "name": "Google Drive",
+      "required": true,
+      "reason": "documents and spreadsheets",
+      "surfaces": [
+        "code",
+        "desktop"
+      ]
+    },
+    {
+      "name": "Slack",
+      "required": false,
+      "reason": "account-level connector; visible in Desktop AND Code (master default D11)",
+      "surfaces": [
+        "code",
+        "desktop"
+      ]
+    }
+  ],
+  "deps": [
+    {
+      "name": "graphifyy",
+      "kind": "pip",
+      "package": "graphifyy",
+      "for": "graphify"
+    },
+    {
+      "name": "defuddle",
+      "kind": "npm",
+      "package": "defuddle",
+      "for": "defuddle"
+    },
+    {
+      "name": "markitdown[all]",
+      "kind": "pip",
+      "package": "markitdown[all]",
+      "for": "auto-md hook"
+    },
+    {
+      "name": "whisper.cpp",
+      "kind": "brew",
+      "package": "whisper-cpp",
+      "for": "claude-watch",
+      "extra": true
+    },
+    {
+      "name": "ffmpeg",
+      "kind": "brew",
+      "package": "ffmpeg",
+      "for": "claude-watch",
+      "extra": true
+    },
+    {
+      "name": "bun",
+      "kind": "brew",
+      "package": "oven-sh/bun/bun",
+      "for": "claude-mem, telegram"
+    },
+    {
+      "name": "python@3.12",
+      "kind": "brew",
+      "package": "python@3.12",
+      "for": "ui-ux-pro-max, auto-md, graphify (kit venv)"
+    }
+  ],
+  "brew": {
+    "formulae": [
+      "node@24",
+      "git",
+      "gh",
+      "gitleaks",
+      "oven-sh/bun/bun",
+      "python@3.12",
+      "tmux",
+      "tailscale"
+    ],
+    "casks": [
+      "claude",
+      "obsidian"
+    ],
+    "extras": {
+      "formulae": [
+        "whisper-cpp",
+        "ffmpeg"
+      ],
+      "casks": []
+    }
+  },
+  "vault": {
+    "root": "~/second-brain",
+    "folders": [
+      "raw-sources/Thoughts",
+      "raw-sources/Decisions",
+      "raw-sources/Handoffs",
+      "raw-sources/Sessions",
+      "raw-sources/Projects",
+      "wiki",
+      "scripts",
+      ".obsidian"
+    ],
+    "files": [
+      {
+        "path": "kit/vault/CLAUDE.md",
+        "mode": "mirror",
+        "source": "~/Projects/second-brain/CLAUDE.md",
+        "sourceSha256": "b90270d8529f3d8860389186e539336c91c4a84cf48a622731a617493b4a6454"
+      },
+      {
+        "path": "kit/vault/.obsidian/app.json",
+        "mode": "mirror",
+        "source": "~/Projects/second-brain/.obsidian/app.json",
+        "sourceSha256": "c664e9a369c9fe6a1afcee17a47f3079c551111807f6cf9d504cf21a762bd1dd"
+      },
+      {
+        "path": "kit/vault/.obsidian/appearance.json",
+        "mode": "mirror",
+        "source": "~/Projects/second-brain/.obsidian/appearance.json",
+        "sourceSha256": "cff5da291750a590d0970c731666d86508a0d98a7db0f432b6107fccd66315cb"
+      },
+      {
+        "path": "kit/vault/.obsidian/core-plugins.json",
+        "mode": "mirror",
+        "source": "~/Projects/second-brain/.obsidian/core-plugins.json",
+        "sourceSha256": "dd22270c3e0fa1aa3fe9f0d655d8e35aa7381a1d70eb5c040611dbae5b162f22"
+      },
+      {
+        "path": "kit/vault/thought.md",
+        "mode": "authored"
+      },
+      {
+        "path": "kit/vault/decision.md",
+        "mode": "authored"
+      },
+      {
+        "path": "kit/vault/handoff.md",
+        "mode": "authored"
+      },
+      {
+        "path": "kit/vault/wiki/log.md",
+        "mode": "authored"
+      }
+    ]
+  },
+  "deny": [
+    {
+      "name": "firecrawl-*",
+      "kind": "skill",
+      "reason": "31 skills that need a Firecrawl account"
+    },
+    {
+      "name": "heygen-skills",
+      "kind": "skill",
+      "reason": "needs a HeyGen account and a Windows-only helper binary"
+    },
+    {
+      "name": "llm-council",
+      "kind": "skill",
+      "reason": "depends on a local clone of the llm-council repo"
+    },
+    {
+      "name": "learned",
+      "kind": "skill",
+      "reason": "empty directory on the source machine"
+    },
+    {
+      "name": "instagram-sync",
+      "kind": "command",
+      "reason": "Windows-only workflow"
+    },
+    {
+      "name": "reopen-tabs",
+      "kind": "command",
+      "reason": "Windows-only helper scripts"
+    },
+    {
+      "name": "Claude-Code-Agent-Monitor hook handler",
+      "kind": "hook",
+      "reason": "external project (7 hook events) not part of the kit"
+    },
+    {
+      "name": "receptionist-factory",
+      "kind": "agent",
+      "reason": "private agent definition",
+      "path": ".claude/agents/receptionist-factory.md"
+    },
+    {
+      "name": "signal-watcher",
+      "kind": "agent",
+      "reason": "private trading-signal agent",
+      "path": ".claude/agents/signal-watcher.md"
+    },
+    {
+      "name": "crosstrade_mcp.py",
+      "kind": "mcp-server",
+      "reason": "private broker bridge",
+      "path": ".claude/mcp-servers/crosstrade_mcp.py"
+    },
+    {
+      "name": "voltagent-*",
+      "kind": "plugin",
+      "reason": "four subagent packs, already disabled on the source machine"
+    },
+    {
+      "name": "TV-chart MCP servers",
+      "kind": "mcp",
+      "reason": "two desktop-chart automation servers, Windows-only"
+    },
+    {
+      "name": "n8n-mcp",
+      "kind": "mcp",
+      "reason": "local workflow server not part of the kit"
+    },
+    {
+      "name": "heygen",
+      "kind": "mcp",
+      "reason": "needs a HeyGen account"
+    },
+    {
+      "name": "crosstrade-local",
+      "kind": "mcp",
+      "reason": "private broker bridge"
+    },
+    {
+      "name": "skipDangerousModePermissionPrompt",
+      "kind": "settings",
+      "reason": "unsafe default for a new user"
+    },
+    {
+      "name": "enabledMcpjsonServers",
+      "kind": "settings",
+      "reason": "names dropped MCP servers"
+    },
+    {
+      "name": "env (PYTHONIOENCODING/PYTHONUTF8)",
+      "kind": "settings",
+      "reason": "Windows console encoding workaround"
+    },
+    {
+      "name": "model/effortLevel/voice/remoteControlAtStartup",
+      "kind": "settings",
+      "reason": "personal preferences, not kit defaults"
+    },
+    {
+      "name": "permissions.allow entries for dropped MCPs and Windows commands",
+      "kind": "settings",
+      "reason": "task-scheduler, process-list and curl-alias entries have no macOS meaning"
+    },
+    {
+      "name": "scripts/*.ps1",
+      "kind": "vault",
+      "reason": "Windows automation scripts"
+    },
+    {
+      "name": "*-cron.log",
+      "kind": "vault",
+      "reason": "run logs"
+    },
+    {
+      "name": "raw-sources/AM-Review, raw-sources/Claude Export, raw-sources/Claude Data Export",
+      "kind": "vault",
+      "reason": "personal content and exports"
+    },
+    {
+      "name": "graphify-out/",
+      "kind": "vault",
+      "reason": "generated graphs"
+    },
+    {
+      "name": ".obsidian/workspace.json, .obsidian/graph.json",
+      "kind": "vault",
+      "reason": "per-machine window state"
+    }
+  ],
+  "copyDeny": [
+    "credentials/",
+    "channels/",
+    ".credentials.json",
+    ".claude.json",
+    "history.jsonl",
+    "*.log",
+    "sessions/",
+    "projects/",
+    "file-history/",
+    "backups/",
+    "__pycache__/",
+    "*.pyc",
+    "todos/",
+    "shell-snapshots/",
+    "debug/"
+  ],
+  "settingsDeny": [
+    "skipDangerousModePermissionPrompt",
+    "enabledMcpjsonServers",
+    "env",
+    "model",
+    "effortLevel",
+    "voice",
+    "remoteControlAtStartup",
+    "fastMode",
+    "tui",
+    "theme",
+    "agentPushNotifEnabled",
+    "voiceEnabled",
+    "autoUpdatesChannel"
+  ]
+}

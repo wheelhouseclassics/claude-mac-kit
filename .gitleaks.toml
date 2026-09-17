@@ -1,0 +1,48 @@
+# gitleaks config for claude-mac-kit — used by the pre-commit hook, the GitHub Action, and test/secret-guard.test.js.
+# Extends the default ruleset (Anthropic sk-ant-*, Telegram bot tokens, GitHub, Slack, AWS, ...) with the secret shapes
+# this kit actually handles, and allowlists Airtable app/tbl/fld/rec ids (17 chars) which collide with the generic
+# 17-char airtable-api-key rule.
+title = "claude-mac-kit"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "airtable-personal-access-token"
+description = "Airtable personal access token (pat<14>.<64 hex>)"
+regex = '''\bpat[A-Za-z0-9]{14}\.[a-f0-9]{64}\b'''
+keywords = ["pat"]
+
+[[rules]]
+id = "tailscale-key"
+description = "Tailscale auth/API/client key"
+regex = '''\btskey-(?:auth|api|client|webhook)-[A-Za-z0-9_-]{16,}\b'''
+keywords = ["tskey-"]
+
+[[rules]]
+id = "telegram-bot-token-any-context"
+description = "Telegram bot token regardless of surrounding keywords"
+regex = '''\b[0-9]{8,10}:A[A-Za-z0-9_-]{34}\b'''
+
+[[rules]]
+id = "marketcheck-api-key"
+description = "MarketCheck API key (32 lowercase alphanumerics) next to a MarketCheck / api_key context"
+regex = '''(?i)(?:marketcheck[^\n]{0,40}?|api_key\s*[=:]\s*['"]?)([a-z0-9]{32})\b'''
+secretGroup = 1
+keywords = ["marketcheck", "api_key"]
+
+[[rules]]
+id = "composio-api-key"
+description = "Composio API key next to a composio context"
+regex = '''(?i)composio[_\-\s]*(?:api[_\-\s]*)?key[^\n]{0,10}?[=:]\s*['"]?([A-Za-z0-9_\-]{20,})'''
+secretGroup = 1
+keywords = ["composio"]
+
+[[allowlists]]
+description = "Airtable record/table/field/base/view/workspace ids are identifiers, not secrets"
+regexTarget = "secret"
+regexes = ['''^(?:app|tbl|fld|rec|sel|wsp|pbd|viw)[A-Za-z0-9]{14}$''']
+
+[[allowlists]]
+description = "Never scan git internals or the binary test fixture"
+paths = ['''(^|/)\.git/''', '''^test/fixtures/''']

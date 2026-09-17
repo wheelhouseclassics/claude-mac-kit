@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+pre-commit text eol=lf
+*.docx binary
+*.png binary
+*.jpg binary

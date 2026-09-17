@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "airtable": {
+    "baseId": null,
+    "projects": null,
+    "phases": null,
+    "events": null,
+    "fieldIds": {
+      "Projects": {},
+      "Phases": {},
+      "Events": {}
+    }
+  },
+  "outbox": [],
+  "projects": {}
+}
