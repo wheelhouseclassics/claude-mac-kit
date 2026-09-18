@@ -4,13 +4,17 @@
 #   scripts/publish.sh [--remote NAME] [--tag vX.Y.Z] [--no-push]
 set -euo pipefail
 
-remote="origin"; push=1; tag=""
+remote="origin"; push=1; tag=""; skip_workflows=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --remote) remote="$2"; shift 2 ;;
     --tag) tag="$2"; shift 2 ;;
     --no-push) push=0; shift ;;
-    -h|--help) echo "usage: scripts/publish.sh [--remote NAME] [--tag vX.Y.Z] [--no-push]"; exit 0 ;;
+    # GitHub rejects a push that adds .github/workflows/* unless the credential carries the `workflow`
+    # scope (`gh auth refresh -s workflow`). Use this to publish everything else meanwhile, then
+    # re-publish without the flag once the scope is granted.
+    --skip-workflows) skip_workflows=1; shift ;;
+    -h|--help) echo "usage: scripts/publish.sh [--remote NAME] [--tag vX.Y.Z] [--no-push] [--skip-workflows]"; exit 0 ;;
     *) echo "publish: unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -23,6 +27,7 @@ short=$(git rev-parse --short HEAD)
 # Whitelist of paths that may exist on the public branch. Everything else (pipeline internals) stays on main.
 allow='^(install\.sh|Brewfile|Brewfile\.extras|scripts/bench-teardown\.sh|README\.md|LICENSE|TESTLOG\.md|GUIDE\.(md|html)|manifest\.json|manifest\.schema\.json|package\.json|\.gitleaks\.toml|\.gitattributes|\.gitignore|kit/.+|cli/.+|test/.+|\.github/.+|scripts/build-[^/]+|scripts/export-airtable-schema\.js|scripts/lib/.+|scripts/manifest-config\.js|scripts/install-git-hooks\.sh|scripts/publish\.sh|scripts/git-hooks/.+)$'
 deny='^(\.pipeline/|idea\.md$|proposed-plan\.md$|PLAN\.md$|PROGRESS\.md$)'
+[ "$skip_workflows" = 1 ] && deny="${deny%)}|\.github/workflows/)"
 
 tmpidx=$(mktemp)
 trap 'rm -f "$tmpidx"' EXIT
