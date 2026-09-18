@@ -34,6 +34,46 @@ End every burst with `claude-kit bench-teardown` ON the Mac, then `python script
 
 ## Runs (newest first)
 
+### 2026-09-17 — Run 2 · FREE GitHub-hosted macOS runner · run 35295846712 · **ALL GREEN** · $0
+Installed the PUBLISHED `install.sh` (`public` @ `af54230`) twice with `--bootstrap-only`. Every workflow step passed.
+
+| Field | Value |
+|---|---|
+| provider / instance type | GitHub-hosted `macos-latest` runner (free for public repos) — stand-in for the rented Mac |
+| `sw_vers` | macOS **26.6.2**, build 25G83 |
+| `uname -m` | **arm64** |
+| `/bin/bash --version` | **GNU bash 3.2.57(1)-release (arm64-apple-darwin25)** — confirms the bash-3.2 target is real, not theoretical |
+| `command -v brew` | `/opt/homebrew/bin/brew` (PREINSTALLED on runners — a real fresh Mac installs it here) |
+| first run, total | **80 s** (exit 0) |
+| second run, total | **7 s** (exit 0, budget 60 s) |
+| running spend | **$0.00** |
+
+Per-item wall clock, first run (formulas already on the runner are skipped, so a fresh Mac will be slower — Homebrew + Command Line Tools alone add roughly 5–10 min):
+
+| Item | Seconds |
+|---|---|
+| preflight | 0 |
+| kit-clone (`git clone --depth 1 --branch public`) | 1 |
+| formula gitleaks | 1 |
+| formula bun | 2 |
+| formula python@3.12 | 5 |
+| formula tmux | 3 |
+| formula tailscale | 3 |
+| cask claude (Claude Desktop) | 17 |
+| cask obsidian | 25 |
+| brew-bundle (step total) | 63 |
+| tailscaled system daemon | 0 |
+| claude-code native installer | 9 |
+| zprofile + claude-kit symlink | 0 |
+
+**G2.5 evidence (partial — see caveats):** `zsh -lic` resolves `brew node git gh gitleaks bun python3.12 tmux tailscale claude claude-kit`; `node -v` = **v24.20.0**; `claude --version` = **2.1.275 (Claude Code)**; `brew bundle check --no-upgrade` satisfied; `/Applications/Claude.app` + `/Applications/Obsidian.app` present; `tailscale version` = open-source build; `.zprofile` has exactly one brew-shellenv line and one `~/.local/bin` line.
+
+**G2.6 evidence (complete):** second run **7 s**; every step reported `skip` except probe-only `preflight` (`check`); `brew-bundle skip - all 10 items already present`; `sudo skip - nothing in this run needs root`; sha256 manifest over `~/.claude-kit` + `~/.zprofile` + the `claude-kit` symlink target **byte-identical** before/after. Asserted over kit-owned paths only, never `~/.claude`.
+
+**Caveats — why this is not the whole of G2.1/G2.5:** the runner is not a fresh login (Homebrew, Xcode CLT and node preinstalled), its sudo is **passwordless** so the "exactly one password prompt" check cannot run, and there is no GUI Terminal, VNC, Keychain, TCC dialog or iMessage. Those need a real Mac (rented, or the boss's Mac mini in Phase 8).
+
+**Kit fix this run produced:** `install.sh` step statuses are now honest — `preflight` reports `check` (probe only) and `brew-bundle` pre-scans the Brewfile so a fully-installed run reports `skip - all N items already present` instead of `run`. The bench asserts no step may print `run` on a second pass.
+
 ### 2026-09-17 — Run 1 · FREE GitHub-hosted macOS runner (`macos-latest`, Apple silicon) · run 35295371881 · $0
 Bench substitute for the rented Mac (AWS refuses Mac hosts on both owner accounts; Scaleway no_stock). Installed the PUBLISHED `install.sh` from `raw.githubusercontent.com/wheelhouseclassics/claude-mac-kit/public/install.sh` with `--bootstrap-only`.
 
