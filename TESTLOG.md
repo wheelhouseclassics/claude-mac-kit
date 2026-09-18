@@ -107,3 +107,21 @@ Verified on the Mac: `brew node git gh gitleaks bun python3.12 tmux tailscale cl
 
 **Bench-untestable here (record against a real Mac in Phase 8):** the single-sudo-prompt path (runner sudo is passwordless), GUI Terminal login, TCC dialogs, VNC, Keychain, iMessage, and the fresh-Mac timings for Homebrew + Command Line Tools (preinstalled on runners).
 
+
+---
+
+## 2026-09-17 — Phase 2 waiver ledger (owner: "waive and continue")
+
+Phase 2 closes at **5/7**. Two gate items never ran on a rented Mac, because no Apple-silicon Mac
+was rentable to this owner (AWS account-level Mac-host block on both accounts; Scaleway `no_stock`
+with its card declined). They are carried to Phase 8 on the boss's Mac mini, which is where the
+matching success criteria were always specified to close.
+
+| Ledger | Gate item | Why unproven here | Closes at | What Phase 8 must observe |
+|---|---|---|---|---|
+| RR-1 | G2.1 — bench provisioned, VNC desktop, fresh fingerprint | No rented Mac exists; the free runner is a substitute, not the gate | G8.5 + G8.6 (SC14) | Real fresh-machine fingerprint recorded in TESTLOG |
+| RR-2 | G2.5 — "exits 0 prompting for sudo exactly once" | GitHub runner sudo is passwordless → prompt count unobservable | G8.5 (SC1 at G8.6) | **Count the password prompts during the first install; write the number here** |
+| RR-2 | G2.5 — fresh-Mac wall clock vs the 90-minute budget | Runner ships Homebrew + Xcode + Node preinstalled | G8.5 | Per-item stopwatch on a machine with none of it preinstalled |
+
+Everything else in G2.5 is green on real macOS 26.6.2 arm64 (run `35295846712`). Bench spend across
+the entire hunt: **$0**.

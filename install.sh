@@ -17,7 +17,7 @@
 #   kit-install `claude-kit install` (skills, hooks, vault…) unless --bootstrap-only
 #   extras      whisper.cpp + ffmpeg when KIT_EXTRAS=1 (or --extras)
 #
-# Flags:   --bootstrap-only (default for now)  --full  --dry-run  --extras  --ref <branch|tag>  --help
+# Flags:   --full (default)  --bootstrap-only  --dry-run  --extras  --ref <branch|tag>  --help
 # Env:     KIT_REPO KIT_REF KIT_DIR KIT_EXTRAS CLAUDE_CODE_VERSION
 # Test-only overrides (never set these by hand): ARCH_OVERRIDE PROC_TRANSLATED_OVERRIDE KIT_OS_OVERRIDE KIT_TTY
 #
@@ -38,7 +38,7 @@ HOMEBREW_INSTALLER_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/
 CLAUDE_INSTALLER_URL="https://claude.ai/install.sh"
 
 DRY_RUN=0
-BOOTSTRAP_ONLY=1
+BOOTSTRAP_ONLY=0
 MAIN_STARTED=0
 KEEPALIVE_PID=""
 NEEDS_SUDO=0
@@ -342,7 +342,7 @@ link_claude_kit() {
 }
 
 kit_install() {
-  if [ "$BOOTSTRAP_ONLY" = 1 ]; then step kit-install skip "--bootstrap-only (default in this kit version; pass --full to run claude-kit install)"; return 0; fi
+  if [ "$BOOTSTRAP_ONLY" = 1 ]; then step kit-install skip "--bootstrap-only requested (drop the flag to run claude-kit install)"; return 0; fi
   if [ "$DRY_RUN" = 1 ]; then step kit-install dry-run "would run claude-kit install"; return 0; fi
   step kit-install run "claude-kit install"
   PATH="$BREW_PREFIX/bin:$LOCAL_BIN:$PATH" "$LOCAL_BIN/claude-kit" install || die "claude-kit install failed"

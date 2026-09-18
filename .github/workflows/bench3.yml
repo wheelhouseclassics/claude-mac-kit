@@ -1,0 +1,181 @@
+name: bench3 (macOS claude-kit install)
+# Phase 3 gates on a free Apple-silicon macOS runner: G3.3 (pre-login install), G3.4 (installed tree),
+# G3.5 (idempotent second run + Setup hooks), G3.6 (skills produce vault writes), G3.7 (auto-md hook).
+#
+# A runner has no persistent host between jobs, so everything a gate needs is set up inside this ONE job.
+# Gates that need an authenticated Claude session (G3.5's Setup-hook log, G3.6) run ONLY when the
+# repo has an ANTHROPIC_API_KEY secret; without it they report SKIPPED and stay open, never "passed".
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: branch or tag of this repo to install (KIT_REF)
+        default: public
+
+permissions:
+  contents: read
+
+jobs:
+  kit-install:
+    runs-on: macos-latest
+    timeout-minutes: 120
+    env:
+      KIT_REF: ${{ inputs.ref }}
+    steps:
+      - name: Fingerprint the runner
+        run: |
+          set -x
+          sw_vers; uname -m; /bin/bash --version | head -1
+          ls ~/.claude 2>&1 || echo "NO ~/.claude (never-launched claude — the G3.3 precondition)"
+          ls ~/.claude.json 2>&1 || echo "NO ~/.claude.json (no credentials)"
+
+      - name: G3.3 — full install on a machine with no Claude credentials
+        run: |
+          set -o pipefail
+          start=$SECONDS
+          curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${KIT_REF}/install.sh" \
+            | bash 2>&1 | tee "$RUNNER_TEMP/run1.log"
+          echo "FIRST_RUN_SECONDS=$((SECONDS - start))" | tee -a "$GITHUB_ENV"
+          grep -qE '^==> \[kit-install\] run' "$RUNNER_TEMP/run1.log" || { echo "kit-install did not run (is --full still not the default?)"; exit 1; }
+
+      - name: G3.3 — marketplaces and plugin id set match the manifest
+        run: |
+          set -o pipefail
+          export PATH="/opt/homebrew/bin:$HOME/.local/bin:$PATH"
+          claude plugin marketplace list --json > "$RUNNER_TEMP/marketplaces.json"
+          claude plugin list --json > "$RUNNER_TEMP/plugins.json"
+          node - "$HOME/.claude-kit/manifest.json" "$RUNNER_TEMP/marketplaces.json" "$RUNNER_TEMP/plugins.json" <<'JS'
+          const fs = require('fs');
+          const [mf, mkf, plf] = process.argv.slice(2);
+          const m = JSON.parse(fs.readFileSync(mf, 'utf8'));
+          const p = require(process.env.HOME + '/.claude-kit/cli/lib/plugins.js');
+          const have = p.namesOf(p.parseJson(fs.readFileSync(mkf, 'utf8')));
+          const ids = p.pluginIdsOf(p.parseJson(fs.readFileSync(plf, 'utf8')));
+          const missMk = m.marketplaces.map((x) => x.name).filter((n) => !have.has(n));
+          const want = m.plugins.map((x) => x.id).sort();
+          const got = [...ids].sort();
+          console.log('marketplaces:', [...have].join(', '));
+          console.log('plugins:', got.join(', '));
+          if (missMk.length) { console.error('MISSING MARKETPLACES: ' + missMk.join(', ')); process.exit(1); }
+          const missing = want.filter((i) => !ids.has(i));
+          const extra = got.filter((i) => !want.includes(i));
+          if (missing.length || extra.length) {
+            console.error('plugin id set mismatch — missing: ' + missing.join(', ') + ' | extra: ' + extra.join(', '));
+            process.exit(1);
+          }
+          console.log('G3.3 OK: ' + want.length + ' plugins, ' + have.size + ' marketplaces, installed with no login');
+          JS
+
+      - name: G3.4 — installed tree assertions
+        run: |
+          set -euo pipefail
+          export PATH="/opt/homebrew/bin:$HOME/.local/bin:$PATH"
+          cd "$HOME"
+          # residue grep (the G1.3 rule, re-run over the INSTALLED tree)
+          if grep -rIEn 'C:\\|C:/Users|OpenClaw|tradingview|kalshi|polymarket|jessup|MSYS_NO_PATHCONV|schtasks|powershell' \
+               .claude/skills .claude/commands .claude/hooks .claude/pipeline second-brain \
+               --exclude-dir=__pycache__ --exclude-dir=.git ; then
+            echo "residue found in the installed tree"; exit 1
+          fi
+          # skills: set equality with the manifest, each with a non-empty SKILL.md
+          node - <<'JS'
+          const fs = require('fs'), path = require('path'), os = require('os');
+          const m = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.claude-kit/manifest.json'), 'utf8'));
+          const dir = path.join(os.homedir(), '.claude/skills');
+          const got = fs.readdirSync(dir).filter((d) => fs.statSync(path.join(dir, d)).isDirectory()).sort();
+          const want = m.skills.map((s) => s.name).sort();
+          if (JSON.stringify(got) !== JSON.stringify(want)) { console.error('skills mismatch\n got: ' + got + '\nwant: ' + want); process.exit(1); }
+          for (const s of want) {
+            const p = path.join(dir, s, 'SKILL.md');
+            if (!fs.existsSync(p) || fs.statSync(p).size === 0) { console.error('empty or missing SKILL.md: ' + s); process.exit(1); }
+          }
+          const seed = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.claude/pipeline/registry.json'), 'utf8'));
+          if (seed.version !== 1 || Object.keys(seed.projects).length !== 0 || seed.airtable.baseId !== null) { console.error('registry seed is not the empty seed'); process.exit(1); }
+          const md = fs.readFileSync(path.join(os.homedir(), '.claude/CLAUDE.md'), 'utf8');
+          for (const s of ['~/Data', '~/second-brain', '~/projects']) if (!md.includes(s)) { console.error('CLAUDE.md missing ' + s); process.exit(1); }
+          console.log('G3.4 OK: ' + want.length + ' skills, registry seed clean, CLAUDE.md references the three folders');
+          JS
+          # SC8 vault skeleton + the three folders
+          for d in raw-sources/Thoughts raw-sources/Decisions raw-sources/Handoffs raw-sources/Sessions raw-sources/Projects wiki scripts .obsidian; do
+            test -d "second-brain/$d" || { echo "vault missing $d"; exit 1; }
+          done
+          test -f second-brain/wiki/log.md
+          for f in app.json appearance.json core-plugins.json; do test -f "second-brain/.obsidian/$f" || { echo "missing .obsidian/$f"; exit 1; }; done
+          test -d Data && test -d projects
+          # runtime deps
+          command -v bun
+          command -v defuddle
+          "$HOME/.claude-kit/venv/bin/python" -c 'import markitdown; print("markitdown ok")'
+          "$HOME/.claude-kit/venv/bin/python" -c 'import graphifyy' || echo "NOTE: graphifyy import name differs from its package name"
+          test "$("$HOME/.claude-kit/venv/bin/python" -c 'import sys; print(sys.version_info[:2])')" = "(3, 12)"
+
+      - name: G3.7 — the installed auto-md hook converts a file named in a prompt
+        run: |
+          set -euo pipefail
+          cd "$HOME"
+          "$HOME/.claude-kit/venv/bin/python" - <<'PY'
+          from docx import Document
+          import os
+          d = Document(); d.add_paragraph("Hello from the bench. Second brain test document.")
+          os.makedirs(os.path.expanduser("~/Data"), exist_ok=True)
+          d.save(os.path.expanduser("~/Data/sample.docx"))
+          PY
+          printf '{"prompt":"summarize %s/Data/sample.docx"}' "$HOME" \
+            | "$HOME/.claude-kit/venv/bin/python" "$HOME/.claude/hooks/auto-md.py"
+          test -s "$HOME/md-converted/sample.md" || { echo "auto-md produced no ~/md-converted/sample.md"; ls -la "$HOME/md-converted" 2>&1; exit 1; }
+          echo "--- converted ---"; cat "$HOME/md-converted/sample.md"
+          grep -q "Hello from the bench" "$HOME/md-converted/sample.md"
+
+      - name: G3.5a — a hand-added settings key survives, second install reports 0 changes
+        run: |
+          set -euo pipefail
+          export PATH="/opt/homebrew/bin:$HOME/.local/bin:$PATH"
+          node -e '
+            const fs=require("fs"),p=process.env.HOME+"/.claude/settings.json";
+            const s=JSON.parse(fs.readFileSync(p,"utf8")); s.statusLine={type:"command",command:"boss-statusline"};
+            s.enabledPlugins["github@claude-plugins-official"]=false;
+            fs.writeFileSync(p,JSON.stringify(s,null,2));'
+          claude-kit install 2>&1 | tee "$RUNNER_TEMP/run2.log"
+          grep -q '^0 changes$' "$RUNNER_TEMP/run2.log" || { echo "second claude-kit install was not a no-op"; exit 1; }
+          node -e '
+            const fs=require("fs"),p=process.env.HOME+"/.claude/settings.json";
+            const s=JSON.parse(fs.readFileSync(p,"utf8"));
+            if(!s.statusLine||s.statusLine.command!=="boss-statusline"){console.error("hand-added key lost");process.exit(1)}
+            if(s.enabledPlugins["github@claude-plugins-official"]!==false){console.error("boss-disabled plugin was re-enabled");process.exit(1)}
+            console.log("G3.5a OK: hand edits survived a re-install");'
+
+      - name: G3.5b + G3.6 — Setup hooks and skills (needs an authenticated session)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          export PATH="/opt/homebrew/bin:$HOME/.local/bin:$PATH"
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "SKIPPED: no ANTHROPIC_API_KEY secret — G3.5b and G3.6 stay OPEN (they are not passed by this run)"
+            exit 0
+          fi
+          cd "$HOME"
+          claude -p 'ok' > "$RUNNER_TEMP/session1.log" 2>&1 || { echo "headless claude -p failed"; cat "$RUNNER_TEMP/session1.log"; exit 1; }
+          # G3.5b — plugin Setup hooks completed cleanly
+          if grep -riE 'bun: (command )?not found|hook .* exited with (code )?[1-9]' "$RUNNER_TEMP/session1.log" ~/.claude/logs 2>/dev/null; then
+            echo "a plugin Setup hook failed (above)"; exit 1
+          fi
+          # G3.6 — a skill writes into the vault, and /project runs against the empty registry
+          before=$(ls second-brain/raw-sources/Thoughts | wc -l | tr -d ' ')
+          claude -p '/thought-note bench test thought' > "$RUNNER_TEMP/thought.log" 2>&1 || { cat "$RUNNER_TEMP/thought.log"; exit 1; }
+          after=$(ls second-brain/raw-sources/Thoughts | wc -l | tr -d ' ')
+          [ "$after" = "$((before + 1))" ] || { echo "expected exactly one new Thoughts file (before=$before after=$after)"; ls -la second-brain/raw-sources/Thoughts; exit 1; }
+          test -s second-brain/thought.md
+          grep -q . second-brain/wiki/log.md || { echo "wiki/log.md got no line"; exit 1; }
+          claude -p '/project status' > "$RUNNER_TEMP/project.log" 2>&1 || { cat "$RUNNER_TEMP/project.log"; exit 1; }
+          grep -qiE 'C:\\|no such file|ENOENT' "$RUNNER_TEMP/project.log" && { echo "/project status leaked a Windows path or a missing file"; cat "$RUNNER_TEMP/project.log"; exit 1; }
+          echo "G3.5b + G3.6 OK"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench3-logs
+          path: |
+            ${{ runner.temp }}/*.log
+            ${{ runner.temp }}/*.json
