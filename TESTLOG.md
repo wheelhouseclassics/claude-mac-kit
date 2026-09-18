@@ -125,3 +125,40 @@ matching success criteria were always specified to close.
 
 Everything else in G2.5 is green on real macOS 26.6.2 arm64 (run `35295846712`). Bench spend across
 the entire hunt: **$0**.
+
+---
+
+## 2026-09-17 — Phase 3 bench (`bench3.yml`) on a free macOS runner — G3.3, G3.4, G3.5a, G3.7 PASSED
+
+Runs `35304720043` (failed, found a real bug), `35306868562`, `35307185550`, **`35307486912` (the
+evidence run)** — all `macos-latest`, Apple silicon, **$0**. The workflow installs the PUBLISHED
+`install.sh` (now `--full` by default, so it runs `claude-kit install`) on a machine with **no Claude
+credentials and no `~/.claude`**, then asserts the result.
+
+| Gate | Verdict | Evidence from run `35307486912` |
+|---|---|---|
+| G3.1 | ✓ terminal (Windows) | `test/settings-merge.test.js` 5/5 — allowlist only, denylist absent, boss edits survive, second apply byte-identical, stale Windows hook command re-pinned not duplicated |
+| G3.2 | ✓ terminal (Windows) | `test/plugin-plan.test.js` 6/6 — `--scope user --yes --json` on every install, zero calls when provisioned, both JSON shapes, failure names the plugin, stale index → one `marketplace update` + one retry |
+| G3.3 | ✓ real Mac | first run **181 s**, exit 0, `kit-install run`; then `G3.3 OK: 14 plugins, 5 marketplaces, installed with no login` — plugin id set equals the manifest exactly |
+| G3.4 | ✓ real Mac | `G3.4 OK: 10 skills, registry seed clean, CLAUDE.md references the three folders`; residue grep clean over the installed tree; SC8 vault + `.obsidian/{app,appearance,core-plugins}.json`; `~/Data`, `~/projects`; `bun`, `defuddle`, venv python **3.12**, `markitdown ok` |
+| G3.5 | **PARTIAL** | **5a ✓** second `claude-kit install` printed `0 changes`, every step `ok (no changes)`, and `G3.5a OK: hand edits survived a re-install` (hand-added `statusLine` kept, boss-disabled plugin stayed `false`). **5b OPEN** — the claude-mem Setup-hook log needs a real session |
+| G3.6 | **OPEN** | needs an authenticated session (below) |
+| G3.7 | ✓ real Mac | `{"prompt":"summarize $HOME/Data/sample.docx"}` piped into the INSTALLED `~/.claude/hooks/auto-md.py` wrote a non-empty `~/md-converted/sample.md` containing the document's text |
+| G3.8 | carried → P8 | HUMAN, one click in Obsidian; no Mac with a screen exists (owner decision, 2026-09-17) |
+
+**Bug the bench caught (run `35304720043`):** `everything-claude-code@everything-claude-code` no longer
+exists — upstream renamed the marketplace AND the plugin to **`ecc`** (same repo). The manifest was
+shipping an id no fresh Mac can resolve. Fixed via `manifest-config.plugins.renames` (manifest entries
+now carry `was` + `note`) plus a one-shot `claude plugin marketplace update` + retry in `plugins.js`.
+
+**Two more findings, both now encoded in the workflow:**
+- The Claude CLI creates an **empty `~/.claude/skills/learned/`** itself (it exists on the build
+  machine too). Skill set-equality is therefore wrong; the gate now requires every manifest skill to
+  be present with a non-empty `SKILL.md`, and fails only on an EXTRA dir that carries a `SKILL.md`.
+- `markitdown[all]` does **not** pull `python-docx` (it reads .docx through mammoth), and `graphifyy`
+  ships no importable module of that name — the fixture is now built with stdlib `zipfile`, and the
+  dependency is asserted with `pip show`.
+
+**Blocked:** `ANTHROPIC_API_KEY` (added as a repo Actions secret on the owner's instruction) is
+rejected by the API with **"Credit balance is too low"**, so `claude -p` cannot run on the bench and
+**G3.5b + G3.6 stay OPEN — not passed, not waived.**
