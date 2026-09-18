@@ -114,7 +114,10 @@ jobs:
           command -v bun
           command -v defuddle
           "$HOME/.claude-kit/venv/bin/python" -c 'import markitdown; print("markitdown ok")'
-          "$HOME/.claude-kit/venv/bin/python" -c 'import graphifyy' || echo "NOTE: graphifyy import name differs from its package name"
+          # graphifyy ships a CLI, not an importable module named after the distribution — assert the
+          # distribution is installed in the venv (an `import graphifyy` fails by design).
+          "$HOME/.claude-kit/venv/bin/python" -m pip show graphifyy | head -2
+          ls "$HOME/.claude-kit/venv/bin" | grep -i graph || echo "NOTE: graphifyy installs no venv entry point"
           test "$("$HOME/.claude-kit/venv/bin/python" -c 'import sys; print(sys.version_info[:2])')" = "(3, 12)"
 
       - name: G3.7 — the installed auto-md hook converts a file named in a prompt
@@ -202,7 +205,10 @@ jobs:
           test -s second-brain/thought.md
           grep -q . second-brain/wiki/log.md || { echo "wiki/log.md got no line"; exit 1; }
           claude -p '/project status' > "$RUNNER_TEMP/project.log" 2>&1 || { cat "$RUNNER_TEMP/project.log"; exit 1; }
-          grep -qiE 'C:\\|no such file|ENOENT' "$RUNNER_TEMP/project.log" && { echo "/project status leaked a Windows path or a missing file"; cat "$RUNNER_TEMP/project.log"; exit 1; }
+          # `cmd && { ... }` would make the CLEAN case exit non-zero under `set -e`; use if/then.
+          if grep -qiE 'C:\\|no such file|ENOENT' "$RUNNER_TEMP/project.log"; then
+            echo "/project status leaked a Windows path or a missing file"; cat "$RUNNER_TEMP/project.log"; exit 1
+          fi
           echo "G3.5b + G3.6 OK"
 
       - uses: actions/upload-artifact@v4
