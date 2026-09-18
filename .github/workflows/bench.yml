@@ -1,0 +1,97 @@
+name: bench (macOS install.sh)
+# Free stand-in for the rented cloud Mac: GitHub's Apple-silicon macOS runners are free for public
+# repos. Covers the terminal-testable half of G2.5/G2.6 — a real `curl | bash` of the PUBLISHED
+# install.sh, every tool resolving in a fresh login shell, and a second run that changes nothing.
+# It canNOT cover: GUI Terminal login, TCC dialogs, VNC, Keychain, iMessage, or the single-sudo-prompt
+# check (runners have passwordless sudo). Those stay for a real Mac.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: branch or tag of this repo to install (KIT_REF)
+        default: public
+      extras:
+        description: also install whisper.cpp + ffmpeg (KIT_EXTRAS=1)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: macos-latest
+    timeout-minutes: 120
+    steps:
+      - name: Fingerprint the runner (the G2.1 row)
+        run: |
+          set -x
+          sw_vers; uname -m
+          sysctl -n sysctl.proc_translated || true
+          xcode-select -p || true
+          /bin/bash --version | head -1
+          command -v brew || echo NO_BREW
+          ls ~/.claude 2>&1 || true
+
+      - name: Run the published installer (first run)
+        env:
+          KIT_REF: ${{ inputs.ref }}
+          KIT_EXTRAS: ${{ inputs.extras && '1' || '0' }}
+        run: |
+          set -o pipefail
+          start=$SECONDS
+          curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${KIT_REF}/install.sh" \
+            | bash -s -- --bootstrap-only 2>&1 | tee "$RUNNER_TEMP/run1.log"
+          echo "FIRST_RUN_SECONDS=$((SECONDS - start))" | tee -a "$GITHUB_ENV"
+
+      - name: Tools resolve in a NEW login shell
+        run: |
+          zsh -lic 'command -v brew node git gh gitleaks bun python3.12 tmux tailscale claude claude-kit'
+          zsh -lic 'node -v' | tee /dev/stderr | grep -q '^v24\.' || { echo "node is not v24"; exit 1; }
+          zsh -lic 'claude --version'
+          brew bundle check --file="$HOME/.claude-kit/Brewfile"
+          test -d /Applications/Claude.app || { echo "Claude.app missing"; exit 1; }
+          test -d /Applications/Obsidian.app || { echo "Obsidian.app missing"; exit 1; }
+          tailscale version
+          test "$(grep -c 'brew shellenv' "$HOME/.zprofile")" = 1 || { echo ".zprofile brew line not exactly once"; exit 1; }
+          test "$(grep -c '.local/bin' "$HOME/.zprofile")" = 1 || { echo ".zprofile local/bin line not exactly once"; exit 1; }
+
+      - name: Fingerprint kit-owned paths
+        run: |
+          find "$HOME/.claude-kit" -type f -not -path '*/.git/*' -print0 | sort -z | xargs -0 shasum -a 256 > "$RUNNER_TEMP/before.sha"
+          shasum -a 256 "$HOME/.zprofile" >> "$RUNNER_TEMP/before.sha"
+          readlink "$HOME/.local/bin/claude-kit" >> "$RUNNER_TEMP/before.sha"
+          wc -l < "$RUNNER_TEMP/before.sha"
+
+      - name: Second run is idempotent and fast (G2.6)
+        env:
+          KIT_REF: ${{ inputs.ref }}
+        run: |
+          set -o pipefail
+          start=$SECONDS
+          curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${KIT_REF}/install.sh" \
+            | bash -s -- --bootstrap-only 2>&1 | tee "$RUNNER_TEMP/run2.log"
+          secs=$((SECONDS - start))
+          echo "SECOND_RUN_SECONDS=$secs"
+          [ "$secs" -lt 60 ] || { echo "second run took ${secs}s, budget is 60s"; exit 1; }
+          # every step line must say skip (the sudo step may also say skip; none may say run)
+          if grep -E '^==> \[' "$RUNNER_TEMP/run2.log" | grep -vE 'skip'; then
+            echo "a step did work on the second run (above)"; exit 1
+          fi
+          find "$HOME/.claude-kit" -type f -not -path '*/.git/*' -print0 | sort -z | xargs -0 shasum -a 256 > "$RUNNER_TEMP/after.sha"
+          shasum -a 256 "$HOME/.zprofile" >> "$RUNNER_TEMP/after.sha"
+          readlink "$HOME/.local/bin/claude-kit" >> "$RUNNER_TEMP/after.sha"
+          diff "$RUNNER_TEMP/before.sha" "$RUNNER_TEMP/after.sha" || { echo "kit-owned files changed on the second run"; exit 1; }
+
+      - name: Per-step wall clock (feeds TESTLOG)
+        if: always()
+        run: |
+          echo "first run: ${FIRST_RUN_SECONDS}s"
+          grep -E '^ +(done in|.* installed in)' "$RUNNER_TEMP/run1.log" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench-logs
+          path: ${{ runner.temp }}/run*.log
