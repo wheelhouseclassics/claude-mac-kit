@@ -42,7 +42,8 @@ test('every plugin marketplace resolves (incl. claude-plugins-official) and kit 
 test('every KEEP entry resolves to an existing source path on the build machine', { skip: !haveSource && 'no source ~/.claude on this machine' }, () => {
   const m = readJson(manifestPath);
   const km = readJson(path.join(sourceHome, '.claude', 'plugins', 'known_marketplaces.json'));
-  for (const mk of m.marketplaces) assert.ok(km[mk.name], `marketplace ${mk.name} not in known_marketplaces.json`);
+  // a marketplace renamed upstream is known to this machine under its OLD name (manifest.was)
+  for (const mk of m.marketplaces) assert.ok(km[mk.was || mk.name], `marketplace ${mk.was || mk.name} not in known_marketplaces.json`);
   const expand = (p) => p.replace(/^~/, sourceHome);
   for (const s of [...m.skills, ...m.commands, ...m.hooks]) {
     assert.ok(exists(expand(s.source)), `${s.name}: source ${s.source} does not exist`);

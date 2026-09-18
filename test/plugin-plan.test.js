@@ -104,3 +104,27 @@ test('a failed install fails the step, naming the plugin', async () => {
   const r = await install.run({ ...ctxFor(s2), log: () => {} }, ['plugins']);
   assert.equal(r.failed, true, 'install.run must report failure');
 });
+
+test('a stale marketplace index is refreshed once, then the install retried', async () => {
+  const id = MANIFEST.plugins[0].id;
+  const mk = MANIFEST.plugins[0].marketplace;
+  let refreshed = false;
+  const calls = [];
+  const exec = (args) => {
+    calls.push(args);
+    if (args[1] === 'marketplace' && args[2] === 'list') return { status: 0, stdout: JSON.stringify(MANIFEST.marketplaces.map((m) => ({ name: m.name }))), stderr: '' };
+    if (args[0] === 'plugin' && args[1] === 'list') return { status: 0, stdout: JSON.stringify(MANIFEST.plugins.slice(1).map((p) => ({ id: p.id }))), stderr: '' };
+    if (args[1] === 'marketplace' && args[2] === 'update') { refreshed = true; return { status: 0, stdout: '', stderr: '' }; }
+    if (args[1] === 'install') {
+      if (!refreshed) return { status: 1, stdout: '', stderr: `Plugin "x" not found in marketplace "${mk}". Your local copy may be out of date` };
+      return { status: 0, stdout: '{}', stderr: '' };
+    }
+    return { status: 0, stdout: '', stderr: '' };
+  };
+  const r = await plugins.ensurePlugins({ home: '/tmp/none', kitRoot: ROOT, manifest: MANIFEST, log: () => {}, dryRun: false, exec });
+  assert.deepEqual(r.changed, [`plugin:${id}`]);
+  const updates = calls.filter((a) => a[2] === 'update');
+  assert.equal(updates.length, 1, 'exactly one marketplace update');
+  assert.equal(updates[0][3], mk, 'refreshes the plugin\u2019s own marketplace');
+  assert.equal(calls.filter((a) => a[1] === 'install').length, 2, 'install attempted twice, not more');
+});

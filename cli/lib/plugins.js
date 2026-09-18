@@ -8,6 +8,7 @@
 const { spawnSync } = require('child_process');
 
 const CLAUDE = process.env.KIT_CLAUDE_BIN || 'claude';
+const STALE_RE = /(not found in marketplace|out of date|marketplace update)/i;
 
 function defaultExec(args) {
   const r = spawnSync(CLAUDE, args, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
@@ -82,7 +83,13 @@ async function ensurePlugins(ctx) {
   }
 
   for (const p of missing) {
-    const r = exec(['plugin', 'install', p.id, '--scope', 'user', '--yes', '--json']);
+    let r = exec(['plugin', 'install', p.id, '--scope', 'user', '--yes', '--json']);
+    // A marketplace added moments ago can still serve a cached index, and upstream renames land the
+    // same way: refresh that one marketplace and try once more before failing.
+    if (r.status !== 0 && STALE_RE.test(`${r.stderr || ''}${r.stdout || ''}`)) {
+      exec(['plugin', 'marketplace', 'update', p.marketplace]);
+      r = exec(['plugin', 'install', p.id, '--scope', 'user', '--yes', '--json']);
+    }
     if (r.status !== 0) throw new Error(`claude plugin install ${p.id} failed: ${(r.stderr || r.stdout || '').trim().split('\n').slice(-2).join(' ')}`);
     changed.push(`plugin:${p.id}`);
   }
@@ -90,4 +97,4 @@ async function ensurePlugins(ctx) {
   return { changed };
 }
 
-module.exports = { ensurePlugins, plan, listMarketplaces, listPlugins, pluginIdsOf, namesOf, parseJson, CLAUDE };
+module.exports = { ensurePlugins, plan, STALE_RE, listMarketplaces, listPlugins, pluginIdsOf, namesOf, parseJson, CLAUDE };

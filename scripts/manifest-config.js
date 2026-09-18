@@ -90,6 +90,17 @@ module.exports = {
       'watch@claude-video',
       'claude-seo@agricidaniel-claude-seo',
     ],
+    // Upstream renames discovered on the bench (2026-09-17): the build machine installed these under
+    // their OLD ids, but a fresh Mac can only resolve the CURRENT ones — `claude plugin install` fails
+    // with "not found in marketplace". The kit ships the current id; the old one stays the lookup key.
+    renames: {
+      'everything-claude-code@everything-claude-code': {
+        id: 'ecc@ecc',
+        marketplace: 'ecc',
+        repo: 'affaan-m/everything-claude-code',
+        note: 'Upstream renamed marketplace + plugin everything-claude-code -> ecc (same repo); the build machine still has the old id installed.',
+      },
+    },
     runtime: { 'claude-mem@thedotmack': 'bun', 'telegram@claude-plugins-official': 'bun' },
     notes: {
       'claude-mem@thedotmack': 'Setup hook runs `bun install --production` at first session, not at install time.',

@@ -107,20 +107,30 @@ if (JSON.stringify(enabled) !== JSON.stringify(keepPlugins)) {
   fail(`enabledPlugins on the build machine differ from manifest-config.plugins.keep\n  enabled-only: ${enabled.filter((x) => !keepPlugins.includes(x)).join(', ') || '-'}\n  config-only: ${keepPlugins.filter((x) => !enabled.includes(x)).join(', ') || '-'}`);
 }
 const known = readJson(path.join(CLAUDE, 'plugins', 'known_marketplaces.json'));
+// The kit ships what a FRESH Mac can resolve today, not what this machine happened to install: an
+// upstream rename is declared in manifest-config.plugins.renames and applied here (the old id stays
+// the key for the enabledPlugins assertion above, and for runtime/notes lookups).
+const renames = cfg.plugins.renames || {};
+const renamedTo = (id) => (renames[id] ? renames[id].id : id);
+const effIds = keepPlugins.map(renamedTo);
 const mktNames = new Set(cfg.marketplaces.alwaysInclude);
-for (const id of keepPlugins) mktNames.add(id.split('@')[1]);
+for (const id of effIds) mktNames.add(id.split('@')[1]);
 const marketplaces = [...mktNames].sort().map((name) => {
+  const ren = Object.values(renames).find((r) => r.marketplace === name);
+  if (ren) { const wasName = Object.keys(renames).find((k) => renames[k] === ren).split('@')[1]; return { name, was: wasName, source: { source: 'github', repo: ren.repo }, note: ren.note }; }
   const k = known[name];
   if (!k || !k.source) { fail(`marketplace ${name} not in known_marketplaces.json`); return { name, source: { source: 'github', repo: 'unknown/unknown' } }; }
   return { name, source: { source: k.source.source, repo: k.source.repo } };
 });
-const plugins = keepPlugins.map((id) => {
+const plugins = keepPlugins.map((oldId) => {
+  const id = renamedTo(oldId);
   const [name, marketplace] = id.split('@');
   const p = { id, name, marketplace };
-  if (cfg.plugins.runtime[id]) p.runtime = cfg.plugins.runtime[id];
-  if (cfg.plugins.notes[id]) p.note = cfg.plugins.notes[id];
+  if (cfg.plugins.runtime[oldId]) p.runtime = cfg.plugins.runtime[oldId];
+  if (cfg.plugins.notes[oldId]) p.note = cfg.plugins.notes[oldId];
+  if (renames[oldId]) { p.was = oldId; p.note = renames[oldId].note; }
   return p;
-});
+}).sort((a, b) => a.id.localeCompare(b.id));
 
 // ---------- 2. ~/.claude.json → ONLY the kept mcpServers (nothing else is read from that file) ----------
 const mcp = [];

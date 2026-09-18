@@ -1,7 +1,7 @@
 {
   "$schema": "./manifest.schema.json",
   "version": 1,
-  "generatedAt": "2026-09-15T00:29:32.096Z",
+  "generatedAt": "2026-09-18T04:24:01.743Z",
   "generator": "scripts/build-manifest.js",
   "marketplaces": [
     {
@@ -26,11 +26,13 @@
       }
     },
     {
-      "name": "everything-claude-code",
+      "name": "ecc",
+      "was": "everything-claude-code",
       "source": {
         "source": "github",
         "repo": "affaan-m/everything-claude-code"
-      }
+      },
+      "note": "Upstream renamed marketplace + plugin everything-claude-code -> ecc (same repo); the build machine still has the old id installed."
     },
     {
       "name": "thedotmack",
@@ -59,9 +61,11 @@
       "marketplace": "agricidaniel-claude-seo"
     },
     {
-      "id": "everything-claude-code@everything-claude-code",
-      "name": "everything-claude-code",
-      "marketplace": "everything-claude-code"
+      "id": "ecc@ecc",
+      "name": "ecc",
+      "marketplace": "ecc",
+      "was": "everything-claude-code@everything-claude-code",
+      "note": "Upstream renamed marketplace + plugin everything-claude-code -> ecc (same repo); the build machine still has the old id installed."
     },
     {
       "id": "frontend-design@claude-plugins-official",
