@@ -62,7 +62,9 @@ log()  { printf '%s\n' "$*"; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
 die()  { printf 'install.sh: %s\n' "$*" >&2; exit 1; }
 
-# step NAME STATUS [DETAIL]   → "==> [name] status - detail"   (STATUS: run | skip | dry-run)
+# step NAME STATUS [DETAIL]   → "==> [name] status - detail"
+# STATUS: run (changed something) | skip (nothing to do) | check (probe only, never changes anything) | dry-run.
+# A second run must print NO `run`: that is the idempotency contract the bench asserts.
 step() {
   STEP_T0=$SECONDS
   if [ -n "${3:-}" ]; then printf '==> [%s] %s - %s\n' "$1" "$2" "$3"; else printf '==> [%s] %s\n' "$1" "$2"; fi
@@ -99,7 +101,7 @@ parse_args() {
 # ---------- steps ----------
 
 preflight() {
-  step preflight run
+  step preflight check
   local os arch translated ver major
   os="${KIT_OS_OVERRIDE:-$(uname -s)}"
   [ "$os" = "Darwin" ] || die "this installer is for macOS only (uname -s says: $os)"
@@ -223,7 +225,24 @@ install_brewfile() {
     if [ "$DRY_RUN" = 1 ]; then step "$label" dry-run "would install every item in $file"; return 0; fi
     die "$file not found (kit clone incomplete?)"
   fi
-  step "$label" run "$file"
+  # Pre-scan so a fully-installed Brewfile reports `skip` instead of `run` (idempotency contract).
+  local missing=0 total=0
+  while read -r kind name; do
+    [ -n "$name" ] || continue
+    total=$((total + 1))
+    if [ "$kind" = "cask" ]; then
+      brew list --cask "$name" >/dev/null 2>&1 || missing=$((missing + 1))
+    else
+      brew list --formula "$name" >/dev/null 2>&1 || missing=$((missing + 1))
+    fi
+  done <<EOF
+$(brew_items "$file")
+EOF
+  if [ "$missing" = 0 ] && [ "$DRY_RUN" != 1 ]; then
+    step "$label" skip "all $total items already present"
+    return 0
+  fi
+  step "$label" run "$file ($missing of $total missing)"
   while read -r kind name; do
     [ -n "$name" ] || continue
     n=$((n + 1))

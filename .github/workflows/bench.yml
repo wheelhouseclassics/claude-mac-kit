@@ -78,10 +78,12 @@ jobs:
           secs=$((SECONDS - start))
           echo "SECOND_RUN_SECONDS=$secs"
           [ "$secs" -lt 60 ] || { echo "second run took ${secs}s, budget is 60s"; exit 1; }
-          # every step line must say skip (the sudo step may also say skip; none may say run)
-          if grep -E '^==> \[' "$RUNNER_TEMP/run2.log" | grep -vE 'skip'; then
+          # No step may report `run` on a second run. `check` is allowed for probe-only steps
+          # (preflight), which never change anything; everything else must say `skip`.
+          if grep -E '^==> \[' "$RUNNER_TEMP/run2.log" | grep -vE ' (skip|check)( -|$)'; then
             echo "a step did work on the second run (above)"; exit 1
           fi
+          grep -qE '^==> \[brew-bundle\] skip' "$RUNNER_TEMP/run2.log" || { echo "brew-bundle did not report skip"; exit 1; }
           find "$HOME/.claude-kit" -type f -not -path '*/.git/*' -print0 | sort -z | xargs -0 shasum -a 256 > "$RUNNER_TEMP/after.sha"
           shasum -a 256 "$HOME/.zprofile" >> "$RUNNER_TEMP/after.sha"
           readlink "$HOME/.local/bin/claude-kit" >> "$RUNNER_TEMP/after.sha"
