@@ -50,7 +50,10 @@ jobs:
           zsh -lic 'command -v brew node git gh gitleaks bun python3.12 tmux tailscale claude claude-kit'
           zsh -lic 'node -v' | tee /dev/stderr | grep -q '^v24\.' || { echo "node is not v24"; exit 1; }
           zsh -lic 'claude --version'
-          brew bundle check --file="$HOME/.claude-kit/Brewfile"
+          # --no-upgrade matches install.sh: "installed" is the contract, not "latest". Without it the
+          # runner's preinstalled-but-outdated formulae (git, gh, node) count as unmet.
+          brew bundle check --no-upgrade --file="$HOME/.claude-kit/Brewfile" \
+            || { brew bundle check --no-upgrade --verbose --file="$HOME/.claude-kit/Brewfile"; exit 1; }
           test -d /Applications/Claude.app || { echo "Claude.app missing"; exit 1; }
           test -d /Applications/Obsidian.app || { echo "Obsidian.app missing"; exit 1; }
           tailscale version
