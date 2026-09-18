@@ -85,11 +85,18 @@ jobs:
           const dir = path.join(os.homedir(), '.claude/skills');
           const got = fs.readdirSync(dir).filter((d) => fs.statSync(path.join(dir, d)).isDirectory()).sort();
           const want = m.skills.map((s) => s.name).sort();
-          if (JSON.stringify(got) !== JSON.stringify(want)) { console.error('skills mismatch\n got: ' + got + '\nwant: ' + want); process.exit(1); }
+          const missing = want.filter((s) => !got.includes(s));
+          if (missing.length) { console.error('skills missing: ' + missing.join(', ')); process.exit(1); }
           for (const s of want) {
             const p = path.join(dir, s, 'SKILL.md');
             if (!fs.existsSync(p) || fs.statSync(p).size === 0) { console.error('empty or missing SKILL.md: ' + s); process.exit(1); }
           }
+          // The CLI creates bookkeeping dirs here itself (an empty `learned/`, present on the build
+          // machine too). Those are not skills: an EXTRA dir only fails if it carries a SKILL.md.
+          const extras = got.filter((s) => !want.includes(s));
+          const realExtras = extras.filter((s) => fs.existsSync(path.join(dir, s, 'SKILL.md')));
+          if (realExtras.length) { console.error('unexpected skills installed: ' + realExtras.join(', ')); process.exit(1); }
+          if (extras.length) console.log('non-skill dirs created by the CLI (no SKILL.md, allowed): ' + extras.join(', '));
           const seed = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.claude/pipeline/registry.json'), 'utf8'));
           if (seed.version !== 1 || Object.keys(seed.projects).length !== 0 || seed.airtable.baseId !== null) { console.error('registry seed is not the empty seed'); process.exit(1); }
           const md = fs.readFileSync(path.join(os.homedir(), '.claude/CLAUDE.md'), 'utf8');
