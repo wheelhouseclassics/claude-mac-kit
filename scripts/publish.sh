@@ -25,7 +25,7 @@ head=$(git rev-parse HEAD)
 short=$(git rev-parse --short HEAD)
 
 # Whitelist of paths that may exist on the public branch. Everything else (pipeline internals) stays on main.
-allow='^(install\.sh|Brewfile|Brewfile\.extras|scripts/bench-teardown\.sh|README\.md|LICENSE|TESTLOG\.md|GUIDE\.(md|html)|manifest\.json|manifest\.schema\.json|package\.json|\.gitleaks\.toml|\.gitattributes|\.gitignore|kit/.+|cli/.+|test/.+|\.github/.+|scripts/build-[^/]+|scripts/export-airtable-schema\.js|scripts/lib/.+|scripts/manifest-config\.js|scripts/install-git-hooks\.sh|scripts/publish\.sh|scripts/git-hooks/.+)$'
+allow='^(install\.sh|Brewfile|Brewfile\.extras|scripts/bench-teardown.sh|scripts/mac-gates.sh|README\.md|LICENSE|TESTLOG\.md|GUIDE\.(md|html)|manifest\.json|manifest\.schema\.json|package\.json|\.gitleaks\.toml|\.gitattributes|\.gitignore|kit/.+|cli/.+|test/.+|\.github/.+|scripts/build-[^/]+|scripts/export-airtable-schema\.js|scripts/lib/.+|scripts/manifest-config\.js|scripts/install-git-hooks\.sh|scripts/publish\.sh|scripts/git-hooks/.+)$'
 deny='^(\.pipeline/|idea\.md$|proposed-plan\.md$|PLAN\.md$|PROGRESS\.md$)'
 [ "$skip_workflows" = 1 ] && deny="${deny%)}|\.github/workflows/)"
 
