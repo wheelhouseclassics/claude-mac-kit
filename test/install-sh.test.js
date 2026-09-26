@@ -179,16 +179,11 @@ cask_present obsidian && echo "obsidian present" || echo "obsidian missing"
 cask_app_name obsidian; cask_app_name some-tool
 `);
   // and the post-install verification (the second place the iMac failed): only the truly absent cask is named
-  const verify = fs.readFileSync(SCRIPT, 'utf8').match(/verify_brewfile\(\) \{[\s\S]*?
-\}
-/)[0];
-  const items = fs.readFileSync(SCRIPT, 'utf8').match(/brew_items\(\) \{[\s\S]*?
-\}
-/)[0];
+  const src = fs.readFileSync(SCRIPT, 'utf8');
+  const verify = src.match(/verify_brewfile\(\) \{[\s\S]*?\n\}\n/)[0];
+  const items = src.match(/brew_items\(\) \{[\s\S]*?\n\}\n/)[0];
   const brewfile = path.join(sb.home, 'Brewfile');
-  fs.writeFileSync(brewfile, 'cask "claude"
-cask "obsidian"
-');
+  fs.writeFileSync(brewfile, 'cask "claude"\ncask "obsidian"\n');
   fs.writeFileSync(probe + '.verify', `${helpers}
 ${items}
 ${verify}
