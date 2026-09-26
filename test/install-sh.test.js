@@ -164,3 +164,24 @@ test('G2.7 no tty + sudo -n failing → non-zero within 5 s with the "run this i
   assert.doesNotMatch(r.out, /downloading/i);
   assert.deepEqual(sb.homeEntries(), []);
 });
+
+// ---------- hand-installed .app counts as present (found on the owner's iMac 2026-09-26) ----------
+test('a cask whose .app already sits in /Applications is present: never `brew install --cask`, pre-scan counts it', () => {
+  const sb = sandbox({ brew: 'case "$1 $2" in "list --cask") exit 1 ;; esac; exit 0' });
+  const apps = path.join(sb.home, 'Applications');
+  fs.mkdirSync(path.join(apps, 'Claude.app'), { recursive: true });
+  // exercise the helpers straight out of install.sh (sourcing the whole file would run main)
+  const helpers = fs.readFileSync(SCRIPT, 'utf8').match(/APPLICATIONS_DIR=[\s\S]*?cask_present\(\) \{[^\n]*\n/)[0];
+  const probe = path.join(sb.home, 'probe.sh');
+  fs.writeFileSync(probe, `${helpers}
+cask_present claude   && echo "claude present"   || echo "claude missing"
+cask_present obsidian && echo "obsidian present" || echo "obsidian missing"
+cask_app_name obsidian; cask_app_name some-tool
+`);
+  const r = run(bash, [probe], { env: { ...sb.env, KIT_APPLICATIONS_DIR: fwd(apps) } });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /claude present/, 'a hand-installed Claude.app must count as present');
+  assert.match(r.stdout, /obsidian missing/, 'an absent app is still missing');
+  assert.match(r.stdout, /Obsidian\nSome-tool/, 'app-name mapping');
+  assert.equal(sb.calls('brew').filter((l) => l.includes('install')).length, 0, 'brew install must never run for a present app');
+});

@@ -213,6 +213,20 @@ clone_kit() {
   done_in kit-clone
 }
 
+# A cask's .app that the user already dragged into /Applications counts as PRESENT: Homebrew refuses to
+# overwrite it ("already an App at …") and --adopt fails on any version mismatch. The kit only needs
+# the app to exist (it updates itself), so it is skipped and left un-owned by brew.
+APPLICATIONS_DIR="${KIT_APPLICATIONS_DIR:-/Applications}"
+cask_app_name() {
+  case "$1" in
+    claude)   echo "Claude" ;;
+    obsidian) echo "Obsidian" ;;
+    *)        printf '%s' "$1" | awk '{print toupper(substr($0,1,1)) substr($0,2)}' ;;
+  esac
+}
+cask_app_present() { [ -d "$APPLICATIONS_DIR/$(cask_app_name "$1").app" ]; }
+cask_present() { brew list --cask "$1" >/dev/null 2>&1 || cask_app_present "$1"; }
+
 # brew_items FILE   → "formula name" / "cask name" lines from a Brewfile (comments stripped)
 brew_items() {
   sed -e 's/#.*$//' "$1" | awk '$1=="brew"||$1=="cask"{gsub(/"/,"",$2); print ($1=="brew"?"formula":"cask"), $2}'
@@ -231,7 +245,7 @@ install_brewfile() {
     [ -n "$name" ] || continue
     total=$((total + 1))
     if [ "$kind" = "cask" ]; then
-      brew list --cask "$name" >/dev/null 2>&1 || missing=$((missing + 1))
+      cask_present "$name" || missing=$((missing + 1))
     else
       brew list --formula "$name" >/dev/null 2>&1 || missing=$((missing + 1))
     fi
@@ -248,6 +262,7 @@ EOF
     n=$((n + 1))
     if [ "$kind" = "cask" ]; then
       if brew list --cask "$name" >/dev/null 2>&1; then log "    cask $name skip"; continue; fi
+      if cask_app_present "$name"; then log "    cask $name skip - $(cask_app_name "$name").app already in $APPLICATIONS_DIR (installed by hand, left as-is)"; continue; fi
     else
       if brew list --formula "$name" >/dev/null 2>&1; then log "    brew $name skip"; continue; fi
     fi
