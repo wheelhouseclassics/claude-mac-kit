@@ -227,6 +227,22 @@ cask_app_name() {
 cask_app_present() { [ -d "$APPLICATIONS_DIR/$(cask_app_name "$1").app" ]; }
 cask_present() { brew list --cask "$1" >/dev/null 2>&1 || cask_app_present "$1"; }
 
+# verify_brewfile FILE → die naming every Brewfile item that is still not present
+verify_brewfile() {
+  local unmet=""
+  while read -r kind name; do
+    [ -n "$name" ] || continue
+    if [ "$kind" = "cask" ]; then
+      cask_present "$name" || unmet="$unmet $name"
+    else
+      brew list --formula "$name" >/dev/null 2>&1 || unmet="$unmet $name"
+    fi
+  done <<EOF
+$(brew_items "$1")
+EOF
+  [ -z "$unmet" ] || die "Brewfile not satisfied after install - still missing:$unmet"
+}
+
 # brew_items FILE   → "formula name" / "cask name" lines from a Brewfile (comments stripped)
 brew_items() {
   sed -e 's/#.*$//' "$1" | awk '$1=="brew"||$1=="cask"{gsub(/"/,"",$2); print ($1=="brew"?"formula":"cask"), $2}'
@@ -290,7 +306,9 @@ brew_bundle() {
   if ! have brew && [ "$DRY_RUN" = 1 ]; then step brew-bundle dry-run "would brew install every item in $file, then brew bundle check"; return 0; fi
   install_brewfile brew-bundle "$file"
   if [ "$DRY_RUN" != 1 ]; then
-    HOMEBREW_BUNDLE_NO_LOCK=1 brew bundle check --file="$file" --no-upgrade >/dev/null 2>&1 || die "brew bundle check --file=$file is not satisfied"
+    # Verified with the kit's own presence test, not `brew bundle check`: bundle check only knows
+    # brew-managed casks, so a hand-installed Claude.app fails it even though the app is there.
+    verify_brewfile "$file"
   fi
 }
 

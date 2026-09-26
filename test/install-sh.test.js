@@ -178,6 +178,26 @@ cask_present claude   && echo "claude present"   || echo "claude missing"
 cask_present obsidian && echo "obsidian present" || echo "obsidian missing"
 cask_app_name obsidian; cask_app_name some-tool
 `);
+  // and the post-install verification (the second place the iMac failed): only the truly absent cask is named
+  const verify = fs.readFileSync(SCRIPT, 'utf8').match(/verify_brewfile\(\) \{[\s\S]*?
+\}
+/)[0];
+  const items = fs.readFileSync(SCRIPT, 'utf8').match(/brew_items\(\) \{[\s\S]*?
+\}
+/)[0];
+  const brewfile = path.join(sb.home, 'Brewfile');
+  fs.writeFileSync(brewfile, 'cask "claude"
+cask "obsidian"
+');
+  fs.writeFileSync(probe + '.verify', `${helpers}
+${items}
+${verify}
+die() { echo "DIE: $*"; exit 3; }
+verify_brewfile "${fwd(brewfile)}"
+`);
+  const v = run(bash, [probe + '.verify'], { env: { ...sb.env, KIT_APPLICATIONS_DIR: fwd(apps) } });
+  assert.equal(v.status, 3, 'verification must fail while obsidian is absent: ' + v.stdout + v.stderr);
+  assert.match(v.stdout, /still missing: obsidian$/m, 'must name obsidian only (claude is present by hand)');
   const r = run(bash, [probe], { env: { ...sb.env, KIT_APPLICATIONS_DIR: fwd(apps) } });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /claude present/, 'a hand-installed Claude.app must count as present');
