@@ -200,7 +200,27 @@ install_homebrew() {
 
 clone_kit() {
   if [ -d "$KIT_DIR/.git" ]; then
-    step kit-clone skip "$KIT_DIR exists (ref $(git -C "$KIT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?'))"
+    # A re-run must run the CURRENT kit code: install.sh arrives fresh through curl, so a clone left
+    # at last week's commit would drift from it (the owner's iMac ran cli/ from a stale clone).
+    # Mirror the published ref exactly; never touch a clone that carries local edits.
+    local before after
+    before=$(git -C "$KIT_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')
+    if [ "$DRY_RUN" = 1 ]; then step kit-clone dry-run "would fast-forward $KIT_DIR ($before) to $KIT_REF"; return 0; fi
+    if [ -n "$(git -C "$KIT_DIR" status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+      step kit-clone skip "$KIT_DIR has local edits ($before) - left as-is, NOT updated to $KIT_REF"
+      return 0
+    fi
+    if git -C "$KIT_DIR" fetch --quiet --depth 1 origin "$KIT_REF" 2>/dev/null && git -C "$KIT_DIR" reset --hard --quiet FETCH_HEAD 2>/dev/null; then
+      after=$(git -C "$KIT_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')
+      if [ "$before" = "$after" ]; then
+        step kit-clone skip "$KIT_DIR up to date ($after, ref $KIT_REF)"
+      else
+        step kit-clone run "updated $before -> $after (ref $KIT_REF)"
+        done_in kit-clone
+      fi
+    else
+      step kit-clone skip "$KIT_DIR exists ($before); could not fetch $KIT_REF (offline?) - using it as-is"
+    fi
     return 0
   fi
   if [ "$DRY_RUN" = 1 ]; then
@@ -327,6 +347,10 @@ install_tailscaled_daemon() {
   if [ -f "$TAILSCALED_PLIST" ]; then step tailscaled skip "daemon already installed"; return 0; fi
   if [ "$DRY_RUN" = 1 ]; then step tailscaled dry-run "would sudo tailscaled install-system-daemon"; return 0; fi
   step tailscaled run "installing the open-source tailscaled as a system daemon"
+  # RR-2 instrumentation: the owner's iMac showed a SECOND password prompt here. Say whether the
+  # ticket from the [sudo] step is still valid, so a repeat prompt can be attributed to sudo (ticket
+  # lost) or to tailscaled itself (prompts on its own).
+  if sudo -n true 2>/dev/null; then log "    sudo ticket still valid (no prompt expected)"; else log "    sudo ticket NOT valid here - a second password prompt follows (record this for RR-2)"; fi
   sudo "$BREW_PREFIX/bin/tailscaled" install-system-daemon || die "tailscaled install-system-daemon failed"
   done_in tailscaled
 }

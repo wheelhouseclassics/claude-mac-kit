@@ -100,11 +100,16 @@ then ok "G3.3 all manifest marketplaces + plugins present"; else bad "G3.3 manif
 
 hr "G3.4 — installed tree"
 cd "$HOME" || exit 1
-if grep -rIEn 'C:\\|C:/Users|OpenClaw|tradingview|kalshi|polymarket|jessup|MSYS_NO_PATHCONV|schtasks|powershell' \
-     .claude/skills .claude/commands .claude/hooks .claude/pipeline second-brain --exclude-dir=__pycache__ --exclude-dir=.git 2>/dev/null | head -5; then
+# `.claude/skills/synced` is claude.ai account sync (the signed-in user's own skills), not kit-owned.
+# Captured to a variable: `if grep | head` would report head's exit status, never grep's.
+RESIDUE=$(grep -rIEn 'C:\\|C:/Users|OpenClaw|tradingview|kalshi|polymarket|jessup|MSYS_NO_PATHCONV|schtasks|powershell' \
+     .claude/skills .claude/commands .claude/hooks .claude/pipeline second-brain \
+     --exclude-dir=__pycache__ --exclude-dir=.git --exclude-dir=synced 2>/dev/null | head -5)
+if [ -n "$RESIDUE" ]; then
+  printf '%s\n' "$RESIDUE"
   bad "G3.4 residue found in the installed tree (above)"
 else
-  ok "G3.4 residue grep clean"
+  ok "G3.4 residue grep clean (account-synced skills excluded)"
 fi
 if node - "$KIT/manifest.json" <<'JS'
 const fs = require('fs'), path = require('path'), os = require('os');
@@ -173,7 +178,9 @@ hr "G3.5b + G3.6 — need a working Claude session"
 S1="$STATE_DIR/session1.log"
 if with_timeout 180 claude -p 'reply with exactly: BENCH OK' > "$S1" 2>&1 && grep -q 'BENCH OK' "$S1"; then
   ok "session: claude -p answered ($( [ -n "${ANTHROPIC_BASE_URL:-}" ] && echo "gateway $ANTHROPIC_BASE_URL" || echo 'claude login'))"
-  if grep -riE 'bun: (command )?not found|hook .* exited with (code )?[1-9]' "$S1" "$HOME/.claude/logs" 2>/dev/null | head -3; then
+  HOOKFAIL=$(grep -riE 'bun: (command )?not found|hook .* exited with (code )?[1-9]' "$S1" "$HOME/.claude/logs" 2>/dev/null | head -3)
+  if [ -n "$HOOKFAIL" ]; then
+    printf '%s\n' "$HOOKFAIL"
     bad "G3.5b a plugin Setup hook failed (above)"
   else
     ok "G3.5b no failed plugin Setup hook after the first real session"
