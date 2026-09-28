@@ -162,3 +162,49 @@ now carry `was` + `note`) plus a one-shot `claude plugin marketplace update` + r
 **Blocked:** `ANTHROPIC_API_KEY` (added as a repo Actions secret on the owner's instruction) is
 rejected by the API with **"Credit balance is too low"**, so `claude -p` cannot run on the bench and
 **G3.5b + G3.6 stay OPEN — not passed, not waived.**
+
+---
+
+## 2026-09-28 — Phase 3 on a REAL Mac (owner's iMac): `mac-gates.sh` PASS=13 FAIL=0 SKIP=0
+
+Machine: iMac, **macOS 26.5.1 (25F80), arm64, bash 3.2.57**, no Homebrew/node/claude beforehand
+(`~/.claude` existed — Claude Desktop had been installed by hand; `~/.claude.json` did not). Three
+installer runs over 2026-09-25 → 09-28, each one finding or confirming something:
+
+| Run | Result | What it proved / found |
+|---|---|---|
+| 1 (09-25) | died at `brew install --cask claude` | **Bug:** Homebrew refuses a hand-installed `/Applications/Claude.app` ("already an App at …"). Fixed: a present `.app` counts as satisfied, never installed. Also: **exactly ONE password prompt**, CLT + Homebrew **143 s**, git 9 s, gh 3 s, node@24 23 s, bun 5 s, python@3.12 6 s, tmux 3 s, tailscale 4 s |
+| 2 (09-26) | died at `brew bundle check` | **Bug:** the post-install verification also only knows brew-managed casks. Fixed: `verify_brewfile` uses the kit's own presence test. Obsidian cask 52 s |
+| 3 (09-28) | **`bootstrap finished in 291s`**, `claude-kit install` **107 changes in 126 s** | tailscaled daemon **101 s (with a SECOND password prompt — see RR-2 below)**, Claude Code native installer 32 s (v2.1.284). Every Phase 3 step ran: tree, vault, deps (venv + graphifyy + markitdown + defuddle), settings-pre, 5 marketplaces + 14 plugins, settings-post no-op, headless launch primed Setup hooks, obsidian.json written |
+
+Gate results (`mac-gates.sh`, second invocation after the gate-script fix):
+
+| Gate | Verdict | Evidence |
+|---|---|---|
+| G3.3 | ✓ real Mac | all 5 manifest marketplaces + all 14 plugin ids present, installed before any login. The signed-in account also synced 9 `*@synced` plugins of its own — extras, correctly not failures |
+| G3.4 | ✓ real Mac | residue grep clean over kit-owned trees (`.claude/skills/synced/` = claude.ai account sync, excluded); 10 kit skills with `SKILL.md`; registry seed parses; CLAUDE.md names the three folders; SC8 vault + `.obsidian` configs; `~/Data`, `~/projects`; bun, defuddle, venv python 3.12 + markitdown + graphifyy |
+| G3.5 | ✓ real Mac | 5a: second `claude-kit install` → `0 changes`, hand-added settings key survived. 5b: after the first real session, no `bun not found` and no non-zero Setup-hook exit (claude-mem's `bun install --production` completed) |
+| G3.6 | ✓ real Mac | `claude -p '/thought-note …'` created exactly one file under `raw-sources/Thoughts/`, overwrote `thought.md`, appended to `wiki/log.md`; `claude -p '/project status'` exit 0, no Windows path, no missing-file error |
+| G3.7 | ✓ real Mac | installed `auto-md.py` converted a `.docx` named in a prompt into `~/md-converted/kit-bench-sample.md` |
+| G3.8 | pending owner | `obsidian.json` carries the `~/second-brain` entry; owner to confirm it shows in Obsidian's vault list |
+
+Session auth on this Mac: **`claude` login** (the owner signed in). The OpenRouter gateway route was not exercised here.
+
+**Gate-script bug found by this run (not a kit bug):** `if grep … | head -N` reports `head`'s exit status,
+so two checks "failed" on a clean tree — fixed by testing captured output. Lesson generalises to every
+bash-3.2 script in the kit: never put a pipeline in an `if`.
+
+**RR-2 (carried from Phase 2) — new evidence:** the fresh-machine run (run 1) prompted **once**, but died
+before `tailscaled`. Run 3 prompted at `[sudo]` **and again at `[tailscaled]`** (`sudo tailscaled
+install-system-daemon`, 101 s = waiting for typing), ~15 s after the ticket was primed and with the
+keepalive alive. Cause not yet known (ticket lost vs tailscaled prompting on its own). `install.sh` now
+logs whether the sudo ticket is still valid immediately before that step, so the Phase 8 fresh-machine
+run attributes it. **Until then the "exactly one prompt" claim is NOT proven.**
+
+**Phase-4 consequence recorded here so it is not lost:** claude.ai account sync adds `*@synced` plugins and
+`~/.claude/skills/synced/…` on any signed-in machine. `claude-kit doctor` rows `plugins_match_manifest`
+and `skills_match_manifest` MUST ignore `@synced` / `skills/synced` (same rule as `@skills-dir`), or the
+boss's account will fail the doctor through no fault of the kit.
+
+**Kit-clone staleness (fixed 09-28):** re-runs used `cli/` from the first clone (`0757f1e`) while
+`install.sh` arrived fresh. `kit-clone` now mirrors `KIT_REF` on re-run (skips with local edits).
