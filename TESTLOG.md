@@ -186,7 +186,7 @@ Gate results (`mac-gates.sh`, second invocation after the gate-script fix):
 | G3.5 | ✓ real Mac | 5a: second `claude-kit install` → `0 changes`, hand-added settings key survived. 5b: after the first real session, no `bun not found` and no non-zero Setup-hook exit (claude-mem's `bun install --production` completed) |
 | G3.6 | ✓ real Mac | `claude -p '/thought-note …'` created exactly one file under `raw-sources/Thoughts/`, overwrote `thought.md`, appended to `wiki/log.md`; `claude -p '/project status'` exit 0, no Windows path, no missing-file error |
 | G3.7 | ✓ real Mac | installed `auto-md.py` converted a `.docx` named in a prompt into `~/md-converted/kit-bench-sample.md` |
-| G3.8 | pending owner | `obsidian.json` carries the `~/second-brain` entry; owner to confirm it shows in Obsidian's vault list |
+| G3.8 | ✓ real Mac (owner, 09-30) | `obsidian.json` write is **HONOURED**: the owner opened Obsidian on the iMac and `second-brain` was already in the vault list without adding it. Per PLAN the gate downgrades to terminal (assert the `~/second-brain` entry in `obsidian.json`); Guide step S15 becomes "confirm it is listed", not a click |
 
 Session auth on this Mac: **`claude` login** (the owner signed in). The OpenRouter gateway route was not exercised here.
 
@@ -200,6 +200,7 @@ install-system-daemon`, 101 s = waiting for typing), ~15 s after the ticket was 
 keepalive alive. Cause not yet known (ticket lost vs tailscaled prompting on its own). `install.sh` now
 logs whether the sudo ticket is still valid immediately before that step, so the Phase 8 fresh-machine
 run attributes it. **Until then the "exactly one prompt" claim is NOT proven.**
+Owner confirmed on 09-30: run 3 showed exactly **two** prompts (`[sudo]`, then `[tailscaled]`) — evidence stands as written.
 
 **Phase-4 consequence recorded here so it is not lost:** claude.ai account sync adds `*@synced` plugins and
 `~/.claude/skills/synced/…` on any signed-in machine. `claude-kit doctor` rows `plugins_match_manifest`

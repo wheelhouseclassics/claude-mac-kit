@@ -46,8 +46,53 @@ function usage() {
         process.exit(r.status === null ? 1 : r.status);
         break;
       }
-      case 'setup':
+      case 'setup': {
+        const setup = require('./lib/setup');
+        if (flag('--list-steps')) { console.log(setup.listSteps().join('\n')); break; }
+        const creds = require('./lib/credentials');
+        creds.refuseArgvSecrets(argv.slice(1));
+        if (opt('--leak-check', null)) {
+          const rows = creds.leakCheck(creds.credDir(ctx.home), require('fs').readFileSync(opt('--leak-check'), 'utf8'));
+          for (const r of rows) console.log(`${r.leaked ? 'LEAK ' : 'clean'} ${r.file} ${r.key}`);
+          process.exit(rows.some((r) => r.leaked) ? 1 : 0);
+        }
+        const readline = require('readline');
+        const { spawnSync } = require('child_process');
+        const setupCtx = {
+          ...ctx,
+          force: flag('--force'),
+          io: require('./lib/probe-io').create({ home: ctx.home }),
+          prompt: {
+            hidden: (q) => creds.promptHidden(q),
+            line: (q) => new Promise((resolve) => {
+              const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+              rl.question(q, (a) => { rl.close(); resolve(a); });
+            }),
+          },
+          interactive: (c, a) => { const r = spawnSync(c, a, { stdio: 'inherit' }); return r.status === null ? 1 : r.status; },
+        };
+        const res = await setup.runSteps(setupCtx, { handlers: require('./lib/steps').handlers(), only: opt('--step', null) });
+        const { steps, raw, wallClockSec } = res.counter;
+        const failed = res.results.filter((r) => r.status === 'failed').map((r) => r.id);
+        console.log(`\nsetup: ${steps} steps completed (target ≤ 15), ${raw} raw inputs, ${wallClockSec}s wall clock${failed.length ? `; failed: ${failed.join(', ')}` : ''}`);
+        const fs = require('fs');
+        const log = path.join(KIT_ROOT, 'TESTLOG.md');
+        if (fs.existsSync(log)) {
+          fs.appendFileSync(log, `| ${new Date().toISOString()} | claude-kit setup${opt('--step', '') ? ` --step ${opt('--step')}` : ''} | steps ${steps} | raw ${raw} | ${wallClockSec}s | failed: ${failed.join(' ') || 'none'} |\n`);
+        }
+        process.exit(failed.length ? 1 : 0);
+        break;
+      }
       case 'doctor':
+      {
+        const doctor = require('./lib/doctor');
+        if (flag('--list-rows')) { console.log(doctor.ROWS.join('\n')); break; }
+        const io = require('./lib/probe-io').create({ home: ctx.home });
+        const rep = await doctor.run({ io, manifest: loadManifest(KIT_ROOT) });
+        console.log(flag('--json') ? JSON.stringify(rep, null, 2) : doctor.format(rep));
+        process.exit(rep.exitCode);
+        break;
+      }
       case 'airtable-init':
         console.error(`claude-kit ${cmd}: not implemented yet in this kit version`);
         process.exit(2);
